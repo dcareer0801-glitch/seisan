@@ -59,7 +59,7 @@
         .btn-del { background: #ced6e0; color: #2f3542; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .total-banner { margin-top: 20px; padding: 25px; border-radius: 25px; background: linear-gradient(135deg, var(--main-blue) 0%, var(--main-purple) 100%); color: white; text-align: right; font-size: 26px; font-weight: bold; }
         .tabs-container { display: flex; gap: 8px; width: 100%; max-width: 1050px; margin-top: 20px; overflow-x: auto; padding: 5px; }
-        .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; position: relative; }
+        .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; }
         .tab.active { background: var(--main-blue); color: #fff; }
         
         #print-area { display: none; }
@@ -133,10 +133,22 @@
     function init() {
         const key = `${curY}-${curM}`;
         if (!voucherData[key]) voucherData[key] = { office: "枚方駅前オフィス", date: "", list: [createRows()] };
+        voucherData[key].list = voucherData[key].list.map((v, i) => v.data ? v : { name: "", data: v });
         render();
     }
 
     function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
+
+    // ゆれを吸収する正規化関数
+    function normalizeText(str) {
+        if (!str) return "";
+        return str
+            .replace(/[駅市\s\t\(\)（）]/g, '') // 駅名、スペース、括弧を無視
+            .replace(/[－ｰ—―─━ー~～-]/g, 'ー') // あらゆるつなぎ線を統一
+            .split('')
+            .sort()
+            .join('');
+    }
 
     function formatSmartDate(val) {
         if (!val) return "";
@@ -151,7 +163,7 @@
 
     function handleContentConfirm(rIdx, val) {
         updateCell(rIdx, 'c', val);
-        const norm = val.replace(/[市駅～\s\t\(\)（）\-〜ー]/g, '').split('').sort().join('');
+        const norm = normalizeText(val);
         if (fareMemory[norm]) {
             updateCell(rIdx, 'a', fareMemory[norm]);
             render();
@@ -172,7 +184,7 @@
         if (!content || !cleanVal) return;
         const skip = /駐車場|パーキング|郵送|切手|郵便|備品|購入|交際|食事/.test(content);
         if (!skip) {
-            const norm = content.replace(/[市駅～\s\t\(\)（）\-〜ー]/g, '').split('').sort().join('');
+            const norm = normalizeText(content);
             fareMemory[norm] = cleanVal; 
             localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
         }
@@ -196,8 +208,7 @@
         const newName = prompt("タブの名前を入力してください", currentName);
         if (newName !== null) {
             voucherData[key].list[idx].name = newName;
-            save();
-            render();
+            save(); render();
         }
     }
 
@@ -248,7 +259,7 @@
         voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx][field] = val;
         save();
         if (field === 'd') render();
-        else updateTotal();
+        else { updateTotal(); preparePrint(); }
     }
 
     function save() { localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
@@ -282,7 +293,6 @@
                 if (data.globalName) { globalName = data.globalName; localStorage.setItem('globalName', globalName); }
                 if (data.voucherData) { 
                     voucherData = data.voucherData; 
-                    // 互換性チェック（古い形式から新しい形式へ）
                     Object.keys(voucherData).forEach(k => {
                         voucherData[k].list = voucherData[k].list.map(v => v.data ? v : { name: "", data: v });
                     });
@@ -317,6 +327,7 @@
             save(); render();
         }
     }
+
     function preparePrint() {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
@@ -346,6 +357,7 @@
             pArea.appendChild(page);
         });
     }
+
     async function copyCurrentTabForExcel(btn) {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
