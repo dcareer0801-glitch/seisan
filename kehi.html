@@ -7,6 +7,7 @@
     
     <link rel="icon" href="出金.png" type="image/png">
     <link rel="apple-touch-icon" href="出金.png">
+
     <style>
         :root {
             --bg-color: #f0f7ff;
@@ -60,8 +61,30 @@
         .tabs-container { display: flex; gap: 8px; width: 100%; max-width: 1050px; margin-top: 20px; overflow-x: auto; padding: 5px; }
         .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; }
         .tab.active { background: var(--main-blue); color: #fff; }
+        
         #print-area { display: none; }
-        @media print { @page { margin: 0; size: A4; } html, body { background: #fff; width: 210mm; } .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } #print-area { display: block !important; width: 100%; } .voucher-page { display: block !important; page-break-after: always; width: 210mm; height: 296mm; padding: 15mm; box-sizing: border-box; color: #000 !important; } .voucher-page:last-child { page-break-after: auto; } table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } th, td { border: 0.5pt solid #000; height: 12mm; font-size: 13pt; text-align: center; background: transparent !important; color: #000 !important; } .print-total-row { font-size: 20pt !important; font-weight: bold !important; background: #f4f4f4 !important; height: 15mm; } }
+
+        /* ★B5印刷用の設定変更 */
+        @media print { 
+            @page { margin: 0; size: B5; } 
+            html, body { background: #fff; width: 182mm; } 
+            .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } 
+            #print-area { display: block !important; width: 100%; } 
+            .voucher-page { 
+                display: block !important; 
+                page-break-after: always; 
+                width: 182mm; 
+                height: 257mm; 
+                padding: 10mm; 
+                box-sizing: border-box; 
+                color: #000 !important; 
+            } 
+            .voucher-page:last-child { page-break-after: auto; } 
+            table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } 
+            th, td { border: 0.5pt solid #000; height: 11mm; font-size: 11pt; text-align: center; background: transparent !important; color: #000 !important; } 
+            .print-total-row { font-size: 16pt !important; font-weight: bold !important; background: #f4f4f4 !important; height: 13mm; } 
+        }
+        
         .print-btn { position: fixed; bottom: 30px; right: 30px; background: var(--text-color); color: white; border: none; padding: 18px 35px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
     </style>
 </head>
@@ -297,16 +320,16 @@
             page.className = 'voucher-page';
             page.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2pt solid #000; padding-bottom:3mm; margin-bottom:5mm; color:#000;">
-                    <div style="text-align:left;"><div style="font-size:24pt; font-weight:bold; text-decoration:underline;">出金伝票</div><div>作成日: ${data.date || '　年　月　日'}</div></div>
-                    <div style="text-align:right;"><div>${data.office}</div><div style="border-bottom:1pt solid #000; width:70mm; margin-top:3mm; font-size:13pt;">氏名： ${globalName}</div></div>
+                    <div style="text-align:left;"><div style="font-size:20pt; font-weight:bold; text-decoration:underline;">出金伝票</div><div style="font-size:10pt;">作成日: ${data.date || '　年　月　日'}</div></div>
+                    <div style="text-align:right;"><div style="font-size:10pt;">${data.office}</div><div style="border-bottom:1pt solid #000; width:60mm; margin-top:2mm; font-size:11pt;">氏名： ${globalName}</div></div>
                 </div>
                 <table>
                     <thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead>
                     <tbody>${rowsPrint.map(r => `<tr>
                         <td>${r.d || ''}</td><td>${r.p || ''}</td><td>${r.c || ''}</td>
-                        <td style="text-align:right; padding-right:10px;">${r.a ? '¥ ' + parseInt(r.a).toLocaleString() : ''}</td>
+                        <td style="text-align:right; padding-right:8px;">${r.a ? '¥ ' + parseInt(r.a).toLocaleString() : ''}</td>
                     </tr>`).join('')}</tbody>
-                    <tr class="print-total-row"><td colspan="3" style="text-align:right; padding-right:15px;">合計</td><td style="text-align:right; padding-right:10px;">¥ ${total.toLocaleString()}</td></tr>
+                    <tr class="print-total-row"><td colspan="3" style="text-align:right; padding-right:15px;">合計</td><td style="text-align:right; padding-right:8px;">¥ ${total.toLocaleString()}</td></tr>
                 </table>`;
             pArea.appendChild(page);
         });
