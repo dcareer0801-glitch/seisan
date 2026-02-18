@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>出金伝票システム - Data Sharing Edition</title>
+    <style>
+        :root {
+            --bg-color: #f0f7ff;
+            --main-pink: #ff85a2;
+            --main-blue: #70a1ff;
+            --main-purple: #a55eea;
+            --main-green: #2ecc71;
+            --text-color: #2f3542;
+            --card-bg: #ffffff;
+            --input-bg: #f8f9fa;
+        }
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: var(--card-bg); width: 100%; max-width: 1050px; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(112, 161, 255, 0.15); }
+        .ui-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid var(--bg-color); padding-bottom: 15px; }
+        h1 { font-size: 1.4rem; margin: 0; color: var(--main-blue); }
+        
+        /* データ共有ボタン用スタイル */
+        .data-io-btns { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 1050px; }
+        .btn-export { background: #576574; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .btn-import { background: #8395a7; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
+
+        .top-inputs { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        input[type="text"], select { padding: 12px; border: 2px solid #e1e8ef; border-radius: 15px; outline: none; font-size: 14px; background: var(--input-bg); transition: 0.3s; width: 100%; box-sizing: border-box; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { padding: 5px 10px; font-size: 13px; color: #a4b0be; text-align: center; }
+        td { background: #fff; border: 2px solid #f1f2f6; height: 60px; vertical-align: middle; padding: 0 8px; transition: 0.3s; }
+        td:first-child { border-radius: 15px 0 0 15px; }
+        td:last-child { border-radius: 0 15px 15px 0; width: 60px; text-align: center; }
+        
+        .copy-input-group { display: flex; align-items: center; gap: 6px; position: relative; }
+        .btn-copy-mini { border: none; background: #eef2f7; color: #7f8c8d; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .btn-copy-mini:hover { background: var(--main-blue); color: #fff; transform: scale(1.1); }
+        
+        @keyframes strong-flash { 0% { background-color: #fff; } 20% { background-color: #70a1ff; box-shadow: 0 0 15px #70a1ff; color: #fff; } 100% { background-color: var(--input-bg); box-shadow: 0 0 0px transparent; } }
+        .copied-success { animation: strong-flash 0.8s ease forwards; }
+
+        @keyframes auto-fill-flash { 
+            0% { background-color: #fff; } 
+            20% { background-color: var(--main-green); box-shadow: 0 0 20px var(--main-green); color: #fff; } 
+            100% { background-color: #f3ebff; box-shadow: 0 0 0px transparent; } 
+        }
+        .auto-filled { animation: auto-fill-flash 1.0s ease forwards; }
+
+        .date-input-wrapper { display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .date-input-cell { width: 120px; border: none !important; background: #ebf2ff !important; border-radius: 10px; padding: 10px 4px; text-align: center; font-weight: bold; color: var(--main-blue); font-size: 14px; outline: none; }
+        .amount-input-cell { width: 90%; border: none; background: #f3ebff; border-radius: 12px; padding: 10px; text-align: center; font-weight: bold; color: var(--main-purple); font-size: 16px; outline: none; }
+        .action-btns { display: flex; gap: 10px; margin-left: auto; align-items: center; }
+        .excel-copy-btn { background: #217346; color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-add { background: var(--main-pink); color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-del { background: #ced6e0; color: #2f3542; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .total-banner { margin-top: 20px; padding: 25px; border-radius: 25px; background: linear-gradient(135deg, var(--main-blue) 0%, var(--main-purple) 100%); color: white; text-align: right; font-size: 26px; font-weight: bold; }
+        .tabs-container { display: flex; gap: 8px; width: 100%; max-width: 1050px; margin-top: 20px; overflow-x: auto; padding: 5px; }
+        .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; }
+        .tab.active { background: var(--main-blue); color: #fff; }
+        #print-area { display: none; }
+        @media print { @page { margin: 0; size: A4; } html, body { background: #fff; width: 210mm; } .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } #print-area { display: block !important; width: 100%; } .voucher-page { display: block !important; page-break-after: always; width: 210mm; height: 296mm; padding: 15mm; box-sizing: border-box; color: #000 !important; } .voucher-page:last-child { page-break-after: auto; } table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } th, td { border: 0.5pt solid #000; height: 12mm; font-size: 13pt; text-align: center; background: transparent !important; color: #000 !important; } .print-total-row { font-size: 20pt !important; font-weight: bold !important; background: #f4f4f4 !important; height: 15mm; } }
+        .print-btn { position: fixed; bottom: 30px; right: 30px; background: var(--text-color); color: white; border: none; padding: 18px 35px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+<div class="data-io-btns no-print">
+    <button class="btn-export" onclick="exportData()">💾 データを保存（配布用）</button>
+    <button class="btn-import" onclick="document.getElementById('import-file').click()">📂 データを読み込む</button>
+    <input type="file" id="import-file" style="display:none" onchange="importData(this)">
+</div>
+
+<div class="tabs-container no-print" id="tabs-bar">
+    <div class="action-btns">
+        <button class="excel-copy-btn" id="copy-btn" onclick="copyCurrentTabForExcel(this)">📊 表示中の伝票をコピー</button>
+        <button class="btn-add" onclick="addNewVoucher()">✨ 伝票を追加</button>
+        <button class="btn-del" onclick="deleteCurrentVoucher()">🗑️ 伝票を削除</button>
+    </div>
+</div>
+
+<div class="container no-print">
+    <div class="ui-header">
+        <h1>📑 出金伝票システム</h1>
+        <div style="display:flex; align-items:center; gap:15px; background: var(--bg-color); padding: 8px 20px; border-radius: 50px;">
+            <button style="background:#fff; border:2px solid var(--main-blue); border-radius:50%; width:30px; height:30px; cursor:pointer;" onclick="changeMonth(-1)">‹</button>
+            <span id="target-month-label" style="font-weight: bold;"></span>
+            <button style="background:#fff; border:2px solid var(--main-blue); border-radius:50%; width:30px; height:30px; cursor:pointer;" onclick="changeMonth(1)">›</button>
+        </div>
+    </div>
+    <div class="top-inputs">
+        <input type="text" id="ui-name" placeholder="お名前" oninput="syncGlobalName(this.value)">
+        <input type="text" id="ui-date" placeholder="作成日 (月/日)" onchange="syncGlobalDate(this.value)">
+        <select id="office-select" onchange="syncGlobalOffice(this.value)">
+            <option value="枚方駅前オフィス">枚方駅前オフィス</option>
+            <option value="ITEX京橋オフィス">ITEX京橋オフィス</option>
+        </select>
+    </div>
+    <div id="editor-area"></div>
+    <div class="total-banner">合計金額： ¥ <span id="ui-total-display">0</span></div>
+</div>
+<div id="print-area"></div>
+<button class="print-btn no-print" onclick="window.print()">🖨️ 印刷プレビューへ</button>
+
+<script>
+    let curY, curM, activeIdx = 0;
+    let fareMemory = JSON.parse(localStorage.getItem('fareMemory')) || {};
+    let voucherData = JSON.parse(localStorage.getItem('voucherData')) || {};
+    let globalName = localStorage.getItem('globalName') || "";
+
+    window.onload = () => {
+        const now = new Date();
+        curY = now.getFullYear(); curM = now.getMonth() + 1;
+        init();
+    };
+
+    function init() {
+        const key = `${curY}-${curM}`;
+        if (!voucherData[key]) voucherData[key] = { office: "枚方駅前オフィス", date: "", list: [createRows()] };
+        render();
+    }
+
+    function createRows() { return Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })); }
+
+    function formatSmartDate(val) {
+        if (!val) return "";
+        let clean = val.replace(/\//g, '-');
+        if (!isNaN(clean) && clean.length <= 2) return `${curY}/${String(curM).padStart(2, '0')}/${String(clean).padStart(2, '0')}`;
+        if (clean.includes('-')) {
+            let parts = clean.split('-');
+            if (parts.length === 2) return `${curY}/${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}`;
+        }
+        return val.replace(/-/g, '/');
+    }
+
+    function handleContentConfirm(rIdx, val) {
+        updateCell(rIdx, 'c', val);
+        const norm = val.replace(/[市駅～\s\t\(\)（）\-〜ー]/g, '').split('').sort().join('');
+        if (fareMemory[norm]) {
+            updateCell(rIdx, 'a', fareMemory[norm]);
+            render();
+            setTimeout(() => {
+                const amountInputs = document.querySelectorAll('.amount-input-cell');
+                if(amountInputs[rIdx]) {
+                    amountInputs[rIdx].classList.add('auto-filled');
+                    setTimeout(() => amountInputs[rIdx].classList.remove('auto-filled'), 1000);
+                }
+            }, 50);
+        }
+    }
+
+    function handleAmountConfirm(rIdx, val) {
+        const cleanVal = val.replace(/[^0-9]/g, '');
+        updateCell(rIdx, 'a', cleanVal);
+        const content = voucherData[`${curY}-${curM}`].list[activeIdx][rIdx].c;
+        if (!content || !cleanVal) return;
+        const skip = /駐車場|パーキング|郵送|切手|郵便|備品|購入|交際|食事/.test(content);
+        if (!skip) {
+            const norm = content.replace(/[市駅～\s\t\(\)（）\-〜ー]/g, '').split('').sort().join('');
+            fareMemory[norm] = cleanVal; 
+            localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
+        }
+    }
+
+    async function execCopy(btn) {
+        const input = btn.previousElementSibling;
+        const text = input.value;
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            btn.innerText = "✅";
+            input.classList.add('copied-success');
+            setTimeout(() => { btn.innerText = "📋"; input.classList.remove('copied-success'); }, 800);
+        } catch (err) { console.error('Copy failed', err); }
+    }
+
+    function render() {
+        const key = `${curY}-${curM}`;
+        const data = voucherData[key];
+        document.getElementById('target-month-label').innerText = `${curY}年 ${curM}月`;
+        document.getElementById('ui-name').value = globalName;
+        document.getElementById('ui-date').value = data.date || "";
+        document.getElementById('office-select').value = data.office || "枚方駅前オフィス";
+
+        const bar = document.getElementById('tabs-bar');
+        bar.querySelectorAll('.tab').forEach(t => t.remove());
+        data.list.forEach((_, i) => {
+            const btn = document.createElement('button');
+            btn.className = `tab ${i === activeIdx ? 'active' : ''}`;
+            btn.innerText = `伝票 ${i + 1}`;
+            btn.onclick = () => { activeIdx = i; render(); };
+            bar.insertBefore(btn, bar.firstChild);
+        });
+
+        const area = document.getElementById('editor-area');
+        const rows = data.list[activeIdx];
+        let html = `<table><tr><th width="180px">日付</th><th width="25%">支払先</th><th width="32%">内容</th><th width="15%">金額</th><th width="60px"></th></tr>`;
+        rows.forEach((r, i) => {
+            html += `<tr>
+                <td>
+                    <div class="date-input-wrapper">
+                        <input type="text" class="date-input-cell" value="${r.d}" onchange="updateCell(${i},'d',formatSmartDate(this.value))" placeholder="MM/DD">
+                        <span style="cursor:pointer; font-size: 20px;" onclick="this.nextElementSibling.showPicker()">📅</span>
+                        <input type="date" style="position:absolute;opacity:0;width:0;pointer-events:none;" onchange="updateCell(${i},'d',this.value.replace(/-/g,'/'))">
+                    </div>
+                </td>
+                <td><div class="copy-input-group"><input type="text" value="${r.p}" onchange="updateCell(${i},'p',this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
+                <td><div class="copy-input-group"><input type="text" value="${r.c}" onchange="handleContentConfirm(${i},this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
+                <td><input type="text" class="amount-input-cell" value="${r.a}" onchange="handleAmountConfirm(${i},this.value)" onfocus="this.select()"></td>
+                <td><button style="border:none;background:none;color:var(--main-pink);cursor:pointer;font-size:18px;" onclick="clearRow(${i})">🗑️</button></td>
+            </tr>`;
+        });
+        area.innerHTML = html + `</table>`;
+        updateTotal(); preparePrint();
+    }
+
+    function updateCell(rIdx, field, val) {
+        voucherData[`${curY}-${curM}`].list[activeIdx][rIdx][field] = val;
+        save();
+        if (field === 'd') render();
+        else updateTotal();
+    }
+
+    function save() { localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
+    
+    function syncGlobalName(val) {
+        globalName = val;
+        localStorage.setItem('globalName', globalName);
+        preparePrint();
+    }
+
+    function syncGlobalDate(val) {
+        const key = `${curY}-${curM}`;
+        voucherData[key].date = formatSmartDate(val);
+        save(); render();
+    }
+
+    function syncGlobalOffice(val) {
+        const key = `${curY}-${curM}`;
+        voucherData[key].office = val;
+        save(); preparePrint();
+    }
+
+    function updateTotal() {
+        const rows = voucherData[`${curY}-${curM}`].list[activeIdx];
+        const total = rows.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
+        document.getElementById('ui-total-display').innerText = total.toLocaleString();
+    }
+
+    // ★追加機能：データ出力
+    function exportData() {
+        const data = {
+            globalName: globalName,
+            voucherData: voucherData,
+            fareMemory: fareMemory
+        };
+        const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${globalName || '出金伝票'}_${curY}年${curM}月分.json`;
+        a.click();
+    }
+
+    // ★追加機能：データ読み込み
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.globalName) {
+                    globalName = data.globalName;
+                    localStorage.setItem('globalName', globalName);
+                }
+                if (data.voucherData) {
+                    voucherData = data.voucherData;
+                    localStorage.setItem('voucherData', JSON.stringify(voucherData));
+                }
+                if (data.fareMemory) {
+                    fareMemory = data.fareMemory;
+                    localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
+                }
+                alert('データを読み込みました！');
+                activeIdx = 0;
+                init();
+            } catch (err) {
+                alert('ファイルの形式が正しくありません');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function addNewVoucher() {
+        const key = `${curY}-${curM}`;
+        voucherData[key].list.push(createRows());
+        activeIdx = voucherData[key].list.length - 1;
+        save(); render();
+    }
+    function deleteCurrentVoucher() {
+        const key = `${curY}-${curM}`;
+        if (voucherData[key].list.length <= 1) return;
+        if (confirm("削除しますか？")) { voucherData[key].list.splice(activeIdx, 1); activeIdx = 0; save(); render(); }
+    }
+    function changeMonth(n) {
+        curM += n; if (curM > 12) { curM = 1; curY++; } else if (curM < 1) { curM = 12; curY--; }
+        activeIdx = 0; init();
+    }
+    function clearRow(i) {
+        if (confirm("クリアしますか？")) {
+            voucherData[`${curY}-${curM}`].list[activeIdx][i] = { d: "", p: "", c: "", a: "" };
+            save(); render();
+        }
+    }
+    function preparePrint() {
+        const key = `${curY}-${curM}`;
+        const data = voucherData[key];
+        const pArea = document.getElementById('print-area');
+        if (!pArea) return;
+        pArea.innerHTML = '';
+        data.list.forEach((v) => {
+            let rowsPrint = v.filter(r => r.d || (r.a && parseInt(r.a) > 0));
+            rowsPrint.sort((a, b) => { if (!a.d) return 1; if (!b.d) return -1; return new Date(a.d) - new Date(b.d); });
+            while(rowsPrint.length < 16) rowsPrint.push({d:"",p:"",c:"",a:""});
+            const total = rowsPrint.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
+            const page = document.createElement('div');
+            page.className = 'voucher-page';
+            page.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2pt solid #000; padding-bottom:3mm; margin-bottom:5mm; color:#000;">
+                    <div style="text-align:left;"><div style="font-size:24pt; font-weight:bold; text-decoration:underline;">出金伝票</div><div>作成日: ${data.date || '　年　月　日'}</div></div>
+                    <div style="text-align:right;"><div>${data.office}</div><div style="border-bottom:1pt solid #000; width:70mm; margin-top:3mm; font-size:13pt;">氏名： ${globalName}</div></div>
+                </div>
+                <table>
+                    <thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead>
+                    <tbody>${rowsPrint.map(r => `<tr>
+                        <td>${r.d || ''}</td><td>${r.p || ''}</td><td>${r.c || ''}</td>
+                        <td style="text-align:right; padding-right:10px;">${r.a ? '¥ ' + parseInt(r.a).toLocaleString() : ''}</td>
+                    </tr>`).join('')}</tbody>
+                    <tr class="print-total-row"><td colspan="3" style="text-align:right; padding-right:15px;">合計</td><td style="text-align:right; padding-right:10px;">¥ ${total.toLocaleString()}</td></tr>
+                </table>`;
+            pArea.appendChild(page);
+        });
+    }
+    async function copyCurrentTabForExcel(btn) {
+        const key = `${curY}-${curM}`;
+        const data = voucherData[key];
+        const currentRows = data.list[activeIdx];
+        let tsv = "";
+        let validRows = currentRows.filter(r => r.d || (r.a && parseInt(r.a) > 0));
+        validRows.sort((a, b) => new Date(a.d) - new Date(b.d));
+        validRows.forEach((r, index) => {
+            const rowDate = (index === 0) ? (data.date || "") : "";
+            tsv += `${rowDate}\t${(r.p + ' ' + r.c).trim()}\t\t${r.a}\t\n`;
+        });
+        if (!tsv) { alert("コピーするデータがありません"); return; }
+        await navigator.clipboard.writeText(tsv);
+        btn.innerText = "✅ 伝票 " + (activeIdx + 1) + " をコピー済";
+        setTimeout(() => { btn.innerText = "📊 表示中の伝票をコピー"; }, 2000);
+    }
+</script>
+</body>
+</html>
