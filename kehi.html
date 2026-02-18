@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>出金伝票システム - Data Sharing Edition</title>
+    <title>出金伝票システム</title>
+    
+    <link rel="icon" href="出金.png" type="image/png">
+    <link rel="apple-touch-icon" href="出金.png">
     <style>
         :root {
             --bg-color: #f0f7ff;
@@ -20,7 +23,6 @@
         .ui-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid var(--bg-color); padding-bottom: 15px; }
         h1 { font-size: 1.4rem; margin: 0; color: var(--main-blue); }
         
-        /* データ共有ボタン用スタイル */
         .data-io-btns { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 1050px; }
         .btn-export { background: #576574; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
         .btn-import { background: #8395a7; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
@@ -222,24 +224,9 @@
     }
 
     function save() { localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
-    
-    function syncGlobalName(val) {
-        globalName = val;
-        localStorage.setItem('globalName', globalName);
-        preparePrint();
-    }
-
-    function syncGlobalDate(val) {
-        const key = `${curY}-${curM}`;
-        voucherData[key].date = formatSmartDate(val);
-        save(); render();
-    }
-
-    function syncGlobalOffice(val) {
-        const key = `${curY}-${curM}`;
-        voucherData[key].office = val;
-        save(); preparePrint();
-    }
+    function syncGlobalName(val) { globalName = val; localStorage.setItem('globalName', globalName); preparePrint(); }
+    function syncGlobalDate(val) { const key = `${curY}-${curM}`; voucherData[key].date = formatSmartDate(val); save(); render(); }
+    function syncGlobalOffice(val) { const key = `${curY}-${curM}`; voucherData[key].office = val; save(); preparePrint(); }
 
     function updateTotal() {
         const rows = voucherData[`${curY}-${curM}`].list[activeIdx];
@@ -247,13 +234,8 @@
         document.getElementById('ui-total-display').innerText = total.toLocaleString();
     }
 
-    // ★追加機能：データ出力
     function exportData() {
-        const data = {
-            globalName: globalName,
-            voucherData: voucherData,
-            fareMemory: fareMemory
-        };
+        const data = { globalName: globalName, voucherData: voucherData, fareMemory: fareMemory };
         const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -262,7 +244,6 @@
         a.click();
     }
 
-    // ★追加機能：データ読み込み
     function importData(input) {
         const file = input.files[0];
         if (!file) return;
@@ -270,24 +251,12 @@
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.globalName) {
-                    globalName = data.globalName;
-                    localStorage.setItem('globalName', globalName);
-                }
-                if (data.voucherData) {
-                    voucherData = data.voucherData;
-                    localStorage.setItem('voucherData', JSON.stringify(voucherData));
-                }
-                if (data.fareMemory) {
-                    fareMemory = data.fareMemory;
-                    localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
-                }
+                if (data.globalName) { globalName = data.globalName; localStorage.setItem('globalName', globalName); }
+                if (data.voucherData) { voucherData = data.voucherData; localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
+                if (data.fareMemory) { fareMemory = data.fareMemory; localStorage.setItem('fareMemory', JSON.stringify(fareMemory)); }
                 alert('データを読み込みました！');
-                activeIdx = 0;
-                init();
-            } catch (err) {
-                alert('ファイルの形式が正しくありません');
-            }
+                activeIdx = 0; init();
+            } catch (err) { alert('ファイルの形式が正しくありません'); }
         };
         reader.readAsText(file);
     }
