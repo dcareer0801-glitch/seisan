@@ -59,30 +59,21 @@
         .btn-del { background: #ced6e0; color: #2f3542; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .total-banner { margin-top: 20px; padding: 25px; border-radius: 25px; background: linear-gradient(135deg, var(--main-blue) 0%, var(--main-purple) 100%); color: white; text-align: right; font-size: 26px; font-weight: bold; }
         .tabs-container { display: flex; gap: 8px; width: 100%; max-width: 1050px; margin-top: 20px; overflow-x: auto; padding: 5px; }
-        .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; }
+        .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; position: relative; }
         .tab.active { background: var(--main-blue); color: #fff; }
         
         #print-area { display: none; }
 
-        /* ★B5印刷用の設定変更 */
         @media print { 
-            @page { margin: 0; size: B5; } 
-            html, body { background: #fff; width: 182mm; } 
+            @page { size: B5 portrait !important; margin: 0 !important; }
+            html, body { background: #fff; width: 182mm !important; margin: 0 !important; padding: 0 !important; } 
             .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } 
-            #print-area { display: block !important; width: 100%; } 
-            .voucher-page { 
-                display: block !important; 
-                page-break-after: always; 
-                width: 182mm; 
-                height: 257mm; 
-                padding: 10mm; 
-                box-sizing: border-box; 
-                color: #000 !important; 
-            } 
+            #print-area { display: block !important; width: 182mm !important; } 
+            .voucher-page { display: block !important; page-break-after: always; width: 182mm !important; height: 257mm !important; padding: 12mm; box-sizing: border-box; color: #000 !important; } 
             .voucher-page:last-child { page-break-after: auto; } 
             table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } 
             th, td { border: 0.5pt solid #000; height: 11mm; font-size: 11pt; text-align: center; background: transparent !important; color: #000 !important; } 
-            .print-total-row { font-size: 16pt !important; font-weight: bold !important; background: #f4f4f4 !important; height: 13mm; } 
+            .print-total-row { font-size: 16pt !important; font-weight: bold !important; background: #eee !important; height: 13mm; } 
         }
         
         .print-btn { position: fixed; bottom: 30px; right: 30px; background: var(--text-color); color: white; border: none; padding: 18px 35px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
@@ -145,7 +136,7 @@
         render();
     }
 
-    function createRows() { return Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })); }
+    function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
 
     function formatSmartDate(val) {
         if (!val) return "";
@@ -177,7 +168,7 @@
     function handleAmountConfirm(rIdx, val) {
         const cleanVal = val.replace(/[^0-9]/g, '');
         updateCell(rIdx, 'a', cleanVal);
-        const content = voucherData[`${curY}-${curM}`].list[activeIdx][rIdx].c;
+        const content = voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx].c;
         if (!content || !cleanVal) return;
         const skip = /駐車場|パーキング|郵送|切手|郵便|備品|購入|交際|食事/.test(content);
         if (!skip) {
@@ -199,6 +190,17 @@
         } catch (err) { console.error('Copy failed', err); }
     }
 
+    function renameTab(idx) {
+        const key = `${curY}-${curM}`;
+        const currentName = voucherData[key].list[idx].name || `伝票 ${idx + 1}`;
+        const newName = prompt("タブの名前を入力してください", currentName);
+        if (newName !== null) {
+            voucherData[key].list[idx].name = newName;
+            save();
+            render();
+        }
+    }
+
     function render() {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
@@ -209,16 +211,19 @@
 
         const bar = document.getElementById('tabs-bar');
         bar.querySelectorAll('.tab').forEach(t => t.remove());
-        data.list.forEach((_, i) => {
+        data.list.forEach((v, i) => {
             const btn = document.createElement('button');
             btn.className = `tab ${i === activeIdx ? 'active' : ''}`;
-            btn.innerText = `伝票 ${i + 1}`;
-            btn.onclick = () => { activeIdx = i; render(); };
+            btn.innerText = v.name || `伝票 ${i + 1}`;
+            btn.onclick = (e) => { 
+                if (i === activeIdx) renameTab(i); 
+                else { activeIdx = i; render(); }
+            };
             bar.insertBefore(btn, bar.firstChild);
         });
 
         const area = document.getElementById('editor-area');
-        const rows = data.list[activeIdx];
+        const rows = data.list[activeIdx].data;
         let html = `<table><tr><th width="180px">日付</th><th width="25%">支払先</th><th width="32%">内容</th><th width="15%">金額</th><th width="60px"></th></tr>`;
         rows.forEach((r, i) => {
             html += `<tr>
@@ -240,7 +245,7 @@
     }
 
     function updateCell(rIdx, field, val) {
-        voucherData[`${curY}-${curM}`].list[activeIdx][rIdx][field] = val;
+        voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx][field] = val;
         save();
         if (field === 'd') render();
         else updateTotal();
@@ -252,7 +257,7 @@
     function syncGlobalOffice(val) { const key = `${curY}-${curM}`; voucherData[key].office = val; save(); preparePrint(); }
 
     function updateTotal() {
-        const rows = voucherData[`${curY}-${curM}`].list[activeIdx];
+        const rows = voucherData[`${curY}-${curM}`].list[activeIdx].data;
         const total = rows.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
         document.getElementById('ui-total-display').innerText = total.toLocaleString();
     }
@@ -275,7 +280,14 @@
             try {
                 const data = JSON.parse(e.target.result);
                 if (data.globalName) { globalName = data.globalName; localStorage.setItem('globalName', globalName); }
-                if (data.voucherData) { voucherData = data.voucherData; localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
+                if (data.voucherData) { 
+                    voucherData = data.voucherData; 
+                    // 互換性チェック（古い形式から新しい形式へ）
+                    Object.keys(voucherData).forEach(k => {
+                        voucherData[k].list = voucherData[k].list.map(v => v.data ? v : { name: "", data: v });
+                    });
+                    localStorage.setItem('voucherData', JSON.stringify(voucherData)); 
+                }
                 if (data.fareMemory) { fareMemory = data.fareMemory; localStorage.setItem('fareMemory', JSON.stringify(fareMemory)); }
                 alert('データを読み込みました！');
                 activeIdx = 0; init();
@@ -301,7 +313,7 @@
     }
     function clearRow(i) {
         if (confirm("クリアしますか？")) {
-            voucherData[`${curY}-${curM}`].list[activeIdx][i] = { d: "", p: "", c: "", a: "" };
+            voucherData[`${curY}-${curM}`].list[activeIdx].data[i] = { d: "", p: "", c: "", a: "" };
             save(); render();
         }
     }
@@ -312,7 +324,7 @@
         if (!pArea) return;
         pArea.innerHTML = '';
         data.list.forEach((v) => {
-            let rowsPrint = v.filter(r => r.d || (r.a && parseInt(r.a) > 0));
+            let rowsPrint = v.data.filter(r => r.d || (r.a && parseInt(r.a) > 0));
             rowsPrint.sort((a, b) => { if (!a.d) return 1; if (!b.d) return -1; return new Date(a.d) - new Date(b.d); });
             while(rowsPrint.length < 16) rowsPrint.push({d:"",p:"",c:"",a:""});
             const total = rowsPrint.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
@@ -321,7 +333,7 @@
             page.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2pt solid #000; padding-bottom:3mm; margin-bottom:5mm; color:#000;">
                     <div style="text-align:left;"><div style="font-size:20pt; font-weight:bold; text-decoration:underline;">出金伝票</div><div style="font-size:10pt;">作成日: ${data.date || '　年　月　日'}</div></div>
-                    <div style="text-align:right;"><div style="font-size:10pt;">${data.office}</div><div style="border-bottom:1pt solid #000; width:60mm; margin-top:2mm; font-size:11pt;">氏名： ${globalName}</div></div>
+                    <div style="text-align:right;"><div>${data.office}</div><div style="border-bottom:1pt solid #000; width:60mm; margin-top:2mm; font-size:11pt;">氏名： ${globalName}</div></div>
                 </div>
                 <table>
                     <thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead>
@@ -337,7 +349,7 @@
     async function copyCurrentTabForExcel(btn) {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
-        const currentRows = data.list[activeIdx];
+        const currentRows = data.list[activeIdx].data;
         let tsv = "";
         let validRows = currentRows.filter(r => r.d || (r.a && parseInt(r.a) > 0));
         validRows.sort((a, b) => new Date(a.d) - new Date(b.d));
@@ -347,7 +359,7 @@
         });
         if (!tsv) { alert("コピーするデータがありません"); return; }
         await navigator.clipboard.writeText(tsv);
-        btn.innerText = "✅ 伝票 " + (activeIdx + 1) + " をコピー済";
+        btn.innerText = "✅ コピー済";
         setTimeout(() => { btn.innerText = "📊 表示中の伝票をコピー"; }, 2000);
     }
 </script>
