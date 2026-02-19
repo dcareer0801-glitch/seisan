@@ -139,12 +139,11 @@
 
     function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
 
-    // ゆれを吸収する正規化関数
     function normalizeText(str) {
         if (!str) return "";
         return str
-            .replace(/[駅市\s\t\(\)（）]/g, '') // 駅名、スペース、括弧を無視
-            .replace(/[－ｰ—―─━ー~～-]/g, 'ー') // あらゆるつなぎ線を統一
+            .replace(/[駅市\s\t\(\)（）]/g, '')
+            .replace(/[－ｰ—―─━ー~～-]/g, 'ー')
             .split('')
             .sort()
             .join('');
@@ -358,17 +357,23 @@
         });
     }
 
+    // ★ 修正されたコピー機能：摘要欄に日付も含める
     async function copyCurrentTabForExcel(btn) {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
         const currentRows = data.list[activeIdx].data;
         let tsv = "";
         let validRows = currentRows.filter(r => r.d || (r.a && parseInt(r.a) > 0));
+        
         validRows.sort((a, b) => new Date(a.d) - new Date(b.d));
+        
         validRows.forEach((r, index) => {
             const rowDate = (index === 0) ? (data.date || "") : "";
-            tsv += `${rowDate}\t${(r.p + ' ' + r.c).trim()}\t\t${r.a}\t\n`;
+            // 日付を先頭に追加（例: 2/19 支払先 内容）
+            const rowSummary = `${r.d} ${r.p} ${r.c}`.trim();
+            tsv += `${rowDate}\t${rowSummary}\t\t${r.a}\t\n`;
         });
+        
         if (!tsv) { alert("コピーするデータがありません"); return; }
         await navigator.clipboard.writeText(tsv);
         btn.innerText = "✅ コピー済";
