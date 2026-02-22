@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>電車賃自動計算ましぃん初号機</title>
+    <style>
+        :root {
+            --bg-color: #fdf0f5;
+            --main-pink: #ff85a2;
+            --main-blue: #70a1ff;
+            --main-purple: #a55eea;
+            --text-color: #2f3542;
+            --card-bg: #ffffff;
+            --input-bg: #f8f9fa;
+        }
+        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: var(--card-bg); width: 100%; max-width: 1000px; padding: 25px; border-radius: 30px; box-shadow: 0 10px 25px rgba(255, 133, 162, 0.15); }
+        h1 { font-size: 1.4rem; color: var(--main-pink); margin-bottom: 20px; text-align: center; }
+        
+        .nav-btns { width: 100%; max-width: 1000px; margin-bottom: 15px; display: flex; justify-content: flex-start; }
+        .btn-back { background: var(--main-blue); color: white; border: none; padding: 10px 20px; border-radius: 15px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 14px; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { font-size: 12px; color: #a4b0be; padding: 10px; text-align: center; }
+        td { background: #fff; border: 2px solid #f1f2f6; padding: 8px; vertical-align: middle; }
+        td:first-child { border-radius: 15px 0 0 15px; }
+        td:last-child { border-radius: 0 15px 15px 0; }
+        
+        input { width: 100%; padding: 10px; border: 1px solid #e1e8ef; border-radius: 10px; box-sizing: border-box; font-size: 14px; text-align: center; background: var(--input-bg); outline: none; }
+        input:focus { border-color: var(--main-pink); background: #fff; }
+        .result-cell { font-weight: bold; color: var(--main-pink); font-size: 18px; text-align: center; border-radius: 10px; transition: 0.3s; }
+        
+        @keyframes auto-fill { 
+            0% { background-color: #fff; } 
+            20% { background-color: #2ecc71; color: #fff; } 
+            100% { background-color: #fdf0f5; color: var(--main-pink); } 
+        }
+        .auto-filled { animation: auto-fill 1.0s ease forwards; }
+
+        .action-cell { display: flex; gap: 5px; justify-content: center; }
+        .btn-mini-del { background: #fff; color: #ff85a2; border: 1px solid #ff85a2; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; }
+        .btn-mini-copy { background: #fff; color: var(--main-blue); border: 1px solid var(--main-blue); width: 34px; height: 34px; border-radius: 10px; cursor: pointer; }
+        
+        .btn-send { width: 100%; background: var(--main-purple); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 16px; box-shadow: 0 4px 10px rgba(165, 94, 234, 0.3); }
+        .btn-send:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+<div class="nav-btns">
+    <a href="kehi.html" class="btn-back">◀ 伝票画面に戻る</a>
+</div>
+
+<div class="container">
+    <h1>💳 電車賃自動計算ましぃん初号機</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th width="12%">日付</th>
+                <th width="18%">支払先</th>
+                <th width="22%">内容（区間）</th>
+                <th width="12%">前回残高</th>
+                <th width="12%">今回残高</th>
+                <th width="12%">利用料金</th>
+                <th width="12%">操作</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+
+    <button class="btn-send" onclick="sendToVoucher()">✨ 計算結果を伝票に反映させて戻る</button>
+</div>
+
+<script>
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+    let fareMemory = JSON.parse(localStorage.getItem('fareMemory')) || {};
+
+    function init() {
+        const tbody = document.getElementById('table-body');
+        for (let i = 0; i < 16; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="date-in" onchange="formatInputDate(this)" onpaste="handlePaste(event, ${i})"></td>
+                <td><input type="text" class="payee" onchange="checkMemory(${i})"></td>
+                <td><input type="text" class="summary" onchange="checkMemory(${i})"></td>
+                <td><input type="number" class="prev-bal" oninput="calculate(${i})"></td>
+                <td><input type="number" class="curr-bal" oninput="calculate(${i})"></td>
+                <td class="result-cell" id="res-${i}">-</td>
+                <td class="action-cell">
+                    <button class="btn-mini-copy" onclick="copyRow(${i}, this)" title="一括コピー">📋</button>
+                    <button class="btn-mini-del" onclick="clearRow(${i})" title="削除">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function normalizeText(str) {
+        if (!str) return "";
+        return str.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
+    }
+
+    function checkMemory(idx) {
+        const payee = document.getElementsByClassName('payee')[idx].value;
+        const summary = document.getElementsByClassName('summary')[idx].value;
+        if (!summary) return;
+        const combined = normalizeText(payee + summary);
+        const resCell = document.getElementById(`res-${idx}`);
+        if (fareMemory[combined]) {
+            resCell.innerText = fareMemory[combined];
+            resCell.classList.add('auto-filled');
+            setTimeout(() => resCell.classList.remove('auto-filled'), 1000);
+            document.getElementsByClassName('prev-bal')[idx].value = "";
+            document.getElementsByClassName('curr-bal')[idx].value = "";
+        }
+    }
+
+    function calculate(idx) {
+        const prev = document.getElementsByClassName('prev-bal')[idx].value;
+        const curr = document.getElementsByClassName('curr-bal')[idx].value;
+        const resCell = document.getElementById(`res-${idx}`);
+        if (prev !== "" && curr !== "") {
+            const diff = parseInt(prev) - parseInt(curr);
+            const amount = diff >= 0 ? diff : "エラー";
+            resCell.innerText = amount;
+            if (amount !== "エラー" && amount > 0) {
+                const payee = document.getElementsByClassName('payee')[idx].value;
+                const summary = document.getElementsByClassName('summary')[idx].value;
+                if (summary) {
+                    const combined = normalizeText(payee + summary);
+                    fareMemory[combined] = amount;
+                    localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
+                }
+            }
+        }
+    }
+
+    function handlePaste(e, idx) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const parts = clipboardData.getData('text').split(/\t|\s{2,}/); 
+        if (parts.length >= 3) {
+            e.preventDefault();
+            const dateInput = document.getElementsByClassName('date-in')[idx];
+            dateInput.value = parts[0];
+            formatInputDate(dateInput);
+            document.getElementsByClassName('payee')[idx].value = parts[1] || "";
+            document.getElementsByClassName('summary')[idx].value = parts[2] || "";
+            if (parts[3]) {
+                document.getElementById(`res-${idx}`).innerText = parts[3].replace(/[^0-9]/g, '');
+            } else {
+                checkMemory(idx);
+            }
+        }
+    }
+
+    function formatInputDate(el) {
+        let val = el.value.trim();
+        if (!val) return;
+        if (!isNaN(val) && val.length <= 2) {
+            el.value = `${curY}/${String(curM).padStart(2, '0')}/${val.padStart(2, '0')}`;
+        }
+    }
+
+    function clearRow(idx) {
+        const fields = ['date-in', 'payee', 'summary', 'prev-bal', 'curr-bal'];
+        fields.forEach(f => document.getElementsByClassName(f)[idx].value = "");
+        document.getElementById(`res-${idx}`).innerText = "-";
+    }
+
+    async function copyRow(idx, btn) {
+        const d = document.getElementsByClassName('date-in')[idx].value;
+        const p = document.getElementsByClassName('payee')[idx].value;
+        const s = document.getElementsByClassName('summary')[idx].value;
+        const a = document.getElementById(`res-${idx}`).innerText;
+        if (a === "-" || a === "エラー") return;
+        try {
+            await navigator.clipboard.writeText(`${d}\t${p}\t${s}\t${a}`);
+            btn.style.background = "var(--main-blue)";
+            setTimeout(() => btn.style.background = "#fff", 500);
+        } catch (err) {}
+    }
+
+    function sendToVoucher() {
+        let newData = [];
+        for (let i = 0; i < 16; i++) {
+            const d = document.getElementsByClassName('date-in')[i].value;
+            const p = document.getElementsByClassName('payee')[i].value;
+            const s = document.getElementsByClassName('summary')[i].value;
+            const a = document.getElementById(`res-${i}`).innerText;
+            if (a !== "-" && a !== "エラー" && a !== "0") {
+                newData.push({ d: d, p: p, c: s, a: a });
+            }
+        }
+        if (newData.length === 0) return;
+        localStorage.setItem('transferData', JSON.stringify(newData));
+        location.href = 'kehi.html';
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>

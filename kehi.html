@@ -57,6 +57,8 @@
         .excel-copy-btn { background: #217346; color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-add { background: var(--main-pink); color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-del { background: #ced6e0; color: #2f3542; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-ic-calc { background: var(--main-purple); color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        
         .total-banner { margin-top: 20px; padding: 25px; border-radius: 25px; background: linear-gradient(135deg, var(--main-blue) 0%, var(--main-purple) 100%); color: white; text-align: right; font-size: 26px; font-weight: bold; }
         .tabs-container { display: flex; gap: 8px; width: 100%; max-width: 1050px; margin-top: 20px; overflow-x: auto; padding: 5px; }
         .tab { background: #dcdde1; border: none; padding: 10px 22px; border-radius: 15px 15px 5px 5px; cursor: pointer; color: #7f8c8d; font-weight: bold; white-space: nowrap; transition: 0.3s; }
@@ -89,6 +91,7 @@
 
 <div class="tabs-container no-print" id="tabs-bar">
     <div class="action-btns">
+        <button class="btn-ic-calc" onclick="location.href='densya.html'">💳 IC残高計算</button>
         <button class="excel-copy-btn" id="copy-btn" onclick="copyCurrentTabForExcel(this)">📊 表示中の伝票をコピー</button>
         <button class="btn-add" onclick="addNewVoucher()">✨ 伝票を追加</button>
         <button class="btn-del" onclick="deleteCurrentVoucher()">🗑️ 伝票を削除</button>
@@ -128,6 +131,7 @@
         const now = new Date();
         curY = now.getFullYear(); curM = now.getMonth() + 1;
         init();
+        checkTransferredData();
     };
 
     function init() {
@@ -135,6 +139,28 @@
         if (!voucherData[key]) voucherData[key] = { office: "枚方駅前オフィス", date: "", list: [createRows()] };
         voucherData[key].list = voucherData[key].list.map((v, i) => v.data ? v : { name: "", data: v });
         render();
+    }
+
+    function checkTransferredData() {
+        const rawData = localStorage.getItem('transferData');
+        if (!rawData) return;
+
+        const newData = JSON.parse(rawData);
+        const key = `${curY}-${curM}`;
+        let rows = voucherData[key].list[activeIdx].data;
+
+        let dataIdx = 0;
+        for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].d && !rows[i].a && dataIdx < newData.length) {
+                rows[i] = newData[dataIdx];
+                dataIdx++;
+            }
+        }
+
+        localStorage.removeItem('transferData'); 
+        save();
+        render();
+        alert(newData.length + "件の交通費データを反映しました！");
     }
 
     function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
@@ -272,14 +298,22 @@
         document.getElementById('ui-total-display').innerText = total.toLocaleString();
     }
 
+    // ★修正箇所：ファイル名を動的に生成するよう強化
     function exportData() {
+        const displayMonth = String(curM).padStart(2, '0');
+        const fileNameName = globalName || '未入力';
+        
         const data = { globalName: globalName, voucherData: voucherData, fareMemory: fareMemory };
         const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+        
         a.href = url;
-        a.download = `${globalName || '出金伝票'}_${curY}年${curM}月分.json`;
+        // 自動生成されるファイル名
+        a.download = `${curY}年${displayMonth}月分_${fileNameName}_出金伝票.json`;
+        
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
     }
 
     function importData(input) {
@@ -357,7 +391,6 @@
         });
     }
 
-    // ★ 修正されたコピー機能：摘要欄に日付も含める
     async function copyCurrentTabForExcel(btn) {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
@@ -369,7 +402,6 @@
         
         validRows.forEach((r, index) => {
             const rowDate = (index === 0) ? (data.date || "") : "";
-            // 日付を先頭に追加（例: 2/19 支払先 内容）
             const rowSummary = `${r.d} ${r.p} ${r.c}`.trim();
             tsv += `${rowDate}\t${rowSummary}\t\t${r.a}\t\n`;
         });
