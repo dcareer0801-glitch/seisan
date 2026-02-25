@@ -67,15 +67,84 @@
         #print-area { display: none; }
 
         @media print { 
-            @page { size: B5 portrait !important; margin: 0 !important; }
-            html, body { background: #fff; width: 182mm !important; margin: 0 !important; padding: 0 !important; } 
+            @page { size: B5 portrait; margin: 0; }
+            html, body { background: #fff; width: 182mm; margin: 0; padding: 0; } 
             .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } 
-            #print-area { display: block !important; width: 182mm !important; } 
-            .voucher-page { display: block !important; page-break-after: always; width: 182mm !important; height: 257mm !important; padding: 12mm; box-sizing: border-box; color: #000 !important; } 
+            #print-area { display: block !important; width: 182mm; } 
+            .voucher-page { 
+                display: block !important; 
+                position: relative;
+                page-break-after: always; 
+                width: 182mm; 
+                height: 257mm; 
+                padding: 12mm; 
+                box-sizing: border-box; 
+                color: #000 !important; 
+            } 
             .voucher-page:last-child { page-break-after: auto; } 
-            table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } 
-            th, td { border: 0.5pt solid #000; height: 11mm; font-size: 11pt; text-align: center; background: transparent !important; color: #000 !important; } 
-            .print-total-row { font-size: 16pt !important; font-weight: bold !important; background: #eee !important; height: 13mm; } 
+            
+            /* 印鑑欄のスタイル - 絶対配置で固定 */
+            .stamp-area {
+                position: absolute;
+                top: 12mm;
+                right: 12mm;
+                display: flex;
+                border: 0.5pt solid #000;
+            }
+            .stamp-box {
+                width: 15mm;
+                border-left: 0.5pt solid #000;
+                text-align: center;
+            }
+            .stamp-box:first-child { border-left: none; }
+            .stamp-label {
+                font-size: 7pt;
+                height: 4mm;
+                border-bottom: 0.5pt solid #000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .stamp-space { height: 12mm; }
+
+            /* ヘッダー周り */
+            .print-header {
+                margin-top: 5mm;
+                margin-bottom: 8mm;
+            }
+            .print-title {
+                font-size: 22pt;
+                font-weight: bold;
+                text-decoration: underline;
+                margin-bottom: 3mm;
+            }
+            .print-info-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 5mm;
+            }
+
+            .print-table { 
+                border: 1.5pt solid #000; 
+                border-collapse: collapse; 
+                width: 100%; 
+                table-layout: fixed; 
+            } 
+            .print-table th, .print-table td { 
+                border: 0.5pt solid #000; 
+                height: 10.5mm; 
+                font-size: 10.5pt; 
+                text-align: center; 
+                background: transparent !important; 
+                color: #000 !important; 
+            } 
+            .print-total-row { 
+                font-size: 14pt !important; 
+                font-weight: bold !important; 
+                background: #eee !important; 
+                height: 12mm; 
+            } 
         }
         
         .print-btn { position: fixed; bottom: 30px; right: 30px; background: var(--text-color); color: white; border: none; padding: 18px 35px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
@@ -144,11 +213,9 @@
     function checkTransferredData() {
         const rawData = localStorage.getItem('transferData');
         if (!rawData) return;
-
         const newData = JSON.parse(rawData);
         const key = `${curY}-${curM}`;
         let rows = voucherData[key].list[activeIdx].data;
-
         let dataIdx = 0;
         for (let i = 0; i < rows.length; i++) {
             if (!rows[i].d && !rows[i].a && dataIdx < newData.length) {
@@ -156,10 +223,8 @@
                 dataIdx++;
             }
         }
-
         localStorage.removeItem('transferData'); 
-        save();
-        render();
+        save(); render();
         alert(newData.length + "件の交通費データを反映しました！");
     }
 
@@ -167,12 +232,7 @@
 
     function normalizeText(str) {
         if (!str) return "";
-        return str
-            .replace(/[駅市\s\t\(\)（）]/g, '')
-            .replace(/[－ｰ—―─━ー~～-]/g, 'ー')
-            .split('')
-            .sort()
-            .join('');
+        return str.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
     }
 
     function formatSmartDate(val) {
@@ -231,10 +291,7 @@
         const key = `${curY}-${curM}`;
         const currentName = voucherData[key].list[idx].name || `伝票 ${idx + 1}`;
         const newName = prompt("タブの名前を入力してください", currentName);
-        if (newName !== null) {
-            voucherData[key].list[idx].name = newName;
-            save(); render();
-        }
+        if (newName !== null) { voucherData[key].list[idx].name = newName; save(); render(); }
     }
 
     function render() {
@@ -251,10 +308,7 @@
             const btn = document.createElement('button');
             btn.className = `tab ${i === activeIdx ? 'active' : ''}`;
             btn.innerText = v.name || `伝票 ${i + 1}`;
-            btn.onclick = (e) => { 
-                if (i === activeIdx) renameTab(i); 
-                else { activeIdx = i; render(); }
-            };
+            btn.onclick = () => { if (i === activeIdx) renameTab(i); else { activeIdx = i; render(); } };
             bar.insertBefore(btn, bar.firstChild);
         });
 
@@ -263,13 +317,7 @@
         let html = `<table><tr><th width="180px">日付</th><th width="25%">支払先</th><th width="32%">内容</th><th width="15%">金額</th><th width="60px"></th></tr>`;
         rows.forEach((r, i) => {
             html += `<tr>
-                <td>
-                    <div class="date-input-wrapper">
-                        <input type="text" class="date-input-cell" value="${r.d}" onchange="updateCell(${i},'d',formatSmartDate(this.value))" placeholder="MM/DD">
-                        <span style="cursor:pointer; font-size: 20px;" onclick="this.nextElementSibling.showPicker()">📅</span>
-                        <input type="date" style="position:absolute;opacity:0;width:0;pointer-events:none;" onchange="updateCell(${i},'d',this.value.replace(/-/g,'/'))">
-                    </div>
-                </td>
+                <td><div class="date-input-wrapper"><input type="text" class="date-input-cell" value="${r.d}" onchange="updateCell(${i},'d',formatSmartDate(this.value))" placeholder="MM/DD"><span style="cursor:pointer; font-size: 20px;" onclick="this.nextElementSibling.showPicker()">📅</span><input type="date" style="position:absolute;opacity:0;width:0;pointer-events:none;" onchange="updateCell(${i},'d',this.value.replace(/-/g,'/'))"></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.p}" onchange="updateCell(${i},'p',this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.c}" onchange="handleContentConfirm(${i},this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
                 <td><input type="text" class="amount-input-cell" value="${r.a}" onchange="handleAmountConfirm(${i},this.value)" onfocus="this.select()"></td>
@@ -282,9 +330,7 @@
 
     function updateCell(rIdx, field, val) {
         voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx][field] = val;
-        save();
-        if (field === 'd') render();
-        else { updateTotal(); preparePrint(); }
+        save(); if (field === 'd') render(); else { updateTotal(); preparePrint(); }
     }
 
     function save() { localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
@@ -298,20 +344,15 @@
         document.getElementById('ui-total-display').innerText = total.toLocaleString();
     }
 
-    // ★修正箇所：ファイル名を動的に生成するよう強化
     function exportData() {
         const displayMonth = String(curM).padStart(2, '0');
         const fileNameName = globalName || '未入力';
-        
         const data = { globalName: globalName, voucherData: voucherData, fareMemory: fareMemory };
         const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        
         a.href = url;
-        // 自動生成されるファイル名
         a.download = `${curY}年${displayMonth}月分_${fileNameName}_出金伝票.json`;
-        
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 100);
     }
@@ -326,14 +367,11 @@
                 if (data.globalName) { globalName = data.globalName; localStorage.setItem('globalName', globalName); }
                 if (data.voucherData) { 
                     voucherData = data.voucherData; 
-                    Object.keys(voucherData).forEach(k => {
-                        voucherData[k].list = voucherData[k].list.map(v => v.data ? v : { name: "", data: v });
-                    });
+                    Object.keys(voucherData).forEach(k => { voucherData[k].list = voucherData[k].list.map(v => v.data ? v : { name: "", data: v }); });
                     localStorage.setItem('voucherData', JSON.stringify(voucherData)); 
                 }
                 if (data.fareMemory) { fareMemory = data.fareMemory; localStorage.setItem('fareMemory', JSON.stringify(fareMemory)); }
-                alert('データを読み込みました！');
-                activeIdx = 0; init();
+                alert('データを読み込みました！'); activeIdx = 0; init();
             } catch (err) { alert('ファイルの形式が正しくありません'); }
         };
         reader.readAsText(file);
@@ -355,10 +393,7 @@
         activeIdx = 0; init();
     }
     function clearRow(i) {
-        if (confirm("クリアしますか？")) {
-            voucherData[`${curY}-${curM}`].list[activeIdx].data[i] = { d: "", p: "", c: "", a: "" };
-            save(); render();
-        }
+        if (confirm("クリアしますか？")) { voucherData[`${curY}-${curM}`].list[activeIdx].data[i] = { d: "", p: "", c: "", a: "" }; save(); render(); }
     }
 
     function preparePrint() {
@@ -375,11 +410,33 @@
             const page = document.createElement('div');
             page.className = 'voucher-page';
             page.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2pt solid #000; padding-bottom:3mm; margin-bottom:5mm; color:#000;">
-                    <div style="text-align:left;"><div style="font-size:20pt; font-weight:bold; text-decoration:underline;">出金伝票</div><div style="font-size:10pt;">作成日: ${data.date || '　年　月　日'}</div></div>
-                    <div style="text-align:right;"><div>${data.office}</div><div style="border-bottom:1pt solid #000; width:60mm; margin-top:2mm; font-size:11pt;">氏名： ${globalName}</div></div>
+                <div class="stamp-area">
+                    <div class="stamp-box" style="width:45mm;">
+                        <div class="stamp-label">承認印</div>
+                        <div style="display:flex;">
+                            <div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div>
+                            <div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div>
+                            <div style="width:15mm; height:12mm;"></div>
+                        </div>
+                    </div>
+                    <div class="stamp-box">
+                        <div class="stamp-label">係印</div>
+                        <div class="stamp-space"></div>
+                    </div>
                 </div>
-                <table>
+
+                <div class="print-header">
+                    <div class="print-title">出金伝票</div>
+                    <div class="print-info-row">
+                        <div style="font-size:11pt;">作成日: ${data.date || '　年　月　日'}</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:10pt; margin-bottom:1mm;">${data.office}</div>
+                            <div style="border-bottom:1pt solid #000; width:60mm; font-size:12pt; padding-bottom:1mm;">氏名： ${globalName}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="print-table">
                     <thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead>
                     <tbody>${rowsPrint.map(r => `<tr>
                         <td>${r.d || ''}</td><td>${r.p || ''}</td><td>${r.c || ''}</td>
@@ -397,15 +454,12 @@
         const currentRows = data.list[activeIdx].data;
         let tsv = "";
         let validRows = currentRows.filter(r => r.d || (r.a && parseInt(r.a) > 0));
-        
         validRows.sort((a, b) => new Date(a.d) - new Date(b.d));
-        
         validRows.forEach((r, index) => {
             const rowDate = (index === 0) ? (data.date || "") : "";
             const rowSummary = `${r.d} ${r.p} ${r.c}`.trim();
             tsv += `${rowDate}\t${rowSummary}\t\t${r.a}\t\n`;
         });
-        
         if (!tsv) { alert("コピーするデータがありません"); return; }
         await navigator.clipboard.writeText(tsv);
         btn.innerText = "✅ コピー済";
