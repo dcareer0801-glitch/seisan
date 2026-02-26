@@ -83,7 +83,6 @@
             } 
             .voucher-page:last-child { page-break-after: auto; } 
             
-            /* 印鑑欄のスタイル - 絶対配置で固定 */
             .stamp-area {
                 position: absolute;
                 top: 12mm;
@@ -107,7 +106,6 @@
             }
             .stamp-space { height: 12mm; }
 
-            /* ヘッダー周り */
             .print-header {
                 margin-top: 5mm;
                 margin-bottom: 8mm;
@@ -210,22 +208,39 @@
         render();
     }
 
+    // ★★★ ここが今回修正した「溢れ防止」ロジックです ★★★
     function checkTransferredData() {
         const rawData = localStorage.getItem('transferData');
         if (!rawData) return;
-        const newData = JSON.parse(rawData);
+        
+        let newData = JSON.parse(rawData);
         const key = `${curY}-${curM}`;
-        let rows = voucherData[key].list[activeIdx].data;
-        let dataIdx = 0;
-        for (let i = 0; i < rows.length; i++) {
-            if (!rows[i].d && !rows[i].a && dataIdx < newData.length) {
-                rows[i] = newData[dataIdx];
-                dataIdx++;
+        
+        // 現在のタブのデータ
+        let currentRows = voucherData[key].list[activeIdx].data;
+        
+        newData.forEach(item => {
+            // 現在のシート内で「日付」も「金額」も空いている最初の行を探す
+            let emptyIdx = currentRows.findIndex(r => !r.d && !r.a);
+            
+            if (emptyIdx !== -1) {
+                // 空きがあればそこに入れる
+                currentRows[emptyIdx] = item;
+            } else {
+                // 16行すべて埋まっていたら、自動的に新しい伝票（タブ）を追加
+                const newVoucher = createRows();
+                newVoucher.name = `伝票 ${voucherData[key].list.length + 1}`;
+                newVoucher.data[0] = item; // 新しい伝票の1行目に入れる
+                
+                voucherData[key].list.push(newVoucher);
+                // 参照を新しく作った伝票のデータに切り替えて、続きを埋めていく
+                currentRows = voucherData[key].list[voucherData[key].list.length - 1].data;
             }
-        }
+        });
+
         localStorage.removeItem('transferData'); 
         save(); render();
-        alert(newData.length + "件の交通費データを反映しました！");
+        alert(newData.length + "件のデータを反映しました。\n枠が足りない分は新しい伝票を自動作成しました。");
     }
 
     function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
