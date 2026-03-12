@@ -14,7 +14,6 @@
             --main-pink: #ff85a2;
             --main-blue: #70a1ff;
             --main-purple: #a55eea;
-            --main-green: #2ecc71;
             --text-color: #2f3542;
             --card-bg: #ffffff;
             --input-bg: #f8f9fa;
@@ -27,6 +26,8 @@
         .data-io-btns { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 1050px; }
         .btn-export { background: #576574; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
         .btn-import { background: #8395a7; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .btn-send { background: var(--main-blue); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-send:hover { opacity: 0.8; }
 
         .top-inputs { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         input[type="text"], select { padding: 12px; border: 2px solid #e1e8ef; border-radius: 15px; outline: none; font-size: 14px; background: var(--input-bg); transition: 0.3s; width: 100%; box-sizing: border-box; }
@@ -38,23 +39,19 @@
         
         .copy-input-group { display: flex; align-items: center; gap: 6px; position: relative; }
         .btn-copy-mini { border: none; background: #eef2f7; color: #7f8c8d; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .btn-copy-mini:hover { background: var(--main-blue); color: #fff; transform: scale(1.1); }
         
-        @keyframes strong-flash { 0% { background-color: #fff; } 20% { background-color: #70a1ff; box-shadow: 0 0 15px #70a1ff; color: #fff; } 100% { background-color: var(--input-bg); box-shadow: 0 0 0px transparent; } }
-        .copied-success { animation: strong-flash 0.8s ease forwards; }
-
-        @keyframes auto-fill-flash { 
-            0% { background-color: #fff; } 
-            20% { background-color: var(--main-green); box-shadow: 0 0 20px var(--main-green); color: #fff; } 
-            100% { background-color: #f3ebff; box-shadow: 0 0 0px transparent; } 
-        }
-        .auto-filled { animation: auto-fill-flash 1.0s ease forwards; }
-
         .date-input-wrapper { display: flex; align-items: center; justify-content: center; gap: 5px; }
         .date-input-cell { width: 120px; border: none !important; background: #ebf2ff !important; border-radius: 10px; padding: 10px 4px; text-align: center; font-weight: bold; color: var(--main-blue); font-size: 14px; outline: none; }
         .amount-input-cell { width: 90%; border: none; background: #f3ebff; border-radius: 12px; padding: 10px; text-align: center; font-weight: bold; color: var(--main-purple); font-size: 16px; outline: none; }
+        
+        /* フラッシュエフェクト用アニメーション */
+        @keyframes flash-purple {
+            0% { background-color: var(--main-purple); color: white; }
+            100% { background-color: #f3ebff; color: var(--main-purple); }
+        }
+        .flash-active { animation: flash-purple 0.8s ease-out; }
+
         .action-btns { display: flex; gap: 10px; margin-left: auto; align-items: center; }
-        .excel-copy-btn { background: #217346; color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-add { background: var(--main-pink); color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-del { background: #ced6e0; color: #2f3542; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-ic-calc { background: var(--main-purple); color: white; border: none; padding: 10px 18px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
@@ -65,86 +62,25 @@
         .tab.active { background: var(--main-blue); color: #fff; }
         
         #print-area { display: none; }
-
         @media print { 
             @page { size: B5 portrait; margin: 0; }
             html, body { background: #fff; width: 182mm; margin: 0; padding: 0; } 
             .no-print, .action-btns, .print-btn, .tabs-container, .total-banner, .container, .btn-copy-mini, .data-io-btns { display: none !important; } 
             #print-area { display: block !important; width: 182mm; } 
-            .voucher-page { 
-                display: block !important; 
-                position: relative;
-                page-break-after: always; 
-                width: 182mm; 
-                height: 257mm; 
-                padding: 12mm; 
-                box-sizing: border-box; 
-                color: #000 !important; 
-            } 
+            .voucher-page { display: block !important; position: relative; page-break-after: always; width: 182mm; height: 257mm; padding: 12mm; box-sizing: border-box; color: #000 !important; } 
             .voucher-page:last-child { page-break-after: auto; } 
-            
-            .stamp-area {
-                position: absolute;
-                top: 12mm;
-                right: 12mm;
-                display: flex;
-                border: 0.5pt solid #000;
-            }
-            .stamp-box {
-                width: 15mm;
-                border-left: 0.5pt solid #000;
-                text-align: center;
-            }
+            .stamp-area { position: absolute; top: 12mm; right: 12mm; display: flex; border: 0.5pt solid #000; }
+            .stamp-box { width: 15mm; border-left: 0.5pt solid #000; text-align: center; }
             .stamp-box:first-child { border-left: none; }
-            .stamp-label {
-                font-size: 7pt;
-                height: 4mm;
-                border-bottom: 0.5pt solid #000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
+            .stamp-label { font-size: 7pt; height: 4mm; border-bottom: 0.5pt solid #000; display: flex; align-items: center; justify-content: center; }
             .stamp-space { height: 12mm; }
-
-            .print-header {
-                margin-top: 5mm;
-                margin-bottom: 8mm;
-            }
-            .print-title {
-                font-size: 22pt;
-                font-weight: bold;
-                text-decoration: underline;
-                margin-bottom: 3mm;
-            }
-            .print-info-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                margin-top: 5mm;
-            }
-
-            .print-table { 
-                border: 1.5pt solid #000; 
-                border-collapse: collapse; 
-                width: 100%; 
-                table-layout: fixed; 
-            } 
-            .print-table th, .print-table td { 
-                border: 0.5pt solid #000; 
-                height: 10.5mm; 
-                font-size: 10.5pt; 
-                text-align: center; 
-                background: transparent !important; 
-                color: #000 !important; 
-            } 
-            .print-total-row { 
-                font-size: 14pt !important; 
-                font-weight: bold !important; 
-                background: #eee !important; 
-                height: 12mm; 
-            } 
+            .print-header { margin-top: 5mm; margin-bottom: 8mm; }
+            .print-title { font-size: 22pt; font-weight: bold; text-decoration: underline; margin-bottom: 3mm; }
+            .print-info-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 5mm; }
+            .print-table { border: 1.5pt solid #000; border-collapse: collapse; width: 100%; table-layout: fixed; } 
+            .print-table th, .print-table td { border: 0.5pt solid #000; height: 10.5mm; font-size: 10.5pt; text-align: center; background: transparent !important; color: #000 !important; } 
+            .print-total-row { font-size: 14pt !important; font-weight: bold !important; background: #eee !important; height: 12mm; } 
         }
-        
         .print-btn { position: fixed; bottom: 30px; right: 30px; background: var(--text-color); color: white; border: none; padding: 18px 35px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
     </style>
 </head>
@@ -152,6 +88,7 @@
 
 <div class="data-io-btns no-print">
     <button class="btn-export" onclick="exportData()">💾 データを保存（配布用）</button>
+    <button class="btn-send" onclick="sendToSpreadsheet()">☁️ データ送信</button>
     <button class="btn-import" onclick="document.getElementById('import-file').click()">📂 データを読み込む</button>
     <input type="file" id="import-file" style="display:none" onchange="importData(this)">
 </div>
@@ -159,7 +96,6 @@
 <div class="tabs-container no-print" id="tabs-bar">
     <div class="action-btns">
         <button class="btn-ic-calc" onclick="location.href='densya.html'">💳 IC残高計算</button>
-        <button class="excel-copy-btn" id="copy-btn" onclick="copyCurrentTabForExcel(this)">📊 表示中の伝票をコピー</button>
         <button class="btn-add" onclick="addNewVoucher()">✨ 伝票を追加</button>
         <button class="btn-del" onclick="deleteCurrentVoucher()">🗑️ 伝票を削除</button>
     </div>
@@ -204,23 +140,20 @@
     function init() {
         const key = `${curY}-${curM}`;
         if (!voucherData[key]) voucherData[key] = { office: "枚方駅前オフィス", date: "", list: [createRows()] };
-        voucherData[key].list = voucherData[key].list.map((v, i) => v.data ? v : { name: "", data: v });
+        voucherData[key].list = voucherData[key].list.map(v => v.data ? v : { name: "", data: v });
         render();
     }
 
     function checkTransferredData() {
         const rawData = localStorage.getItem('transferData');
         if (!rawData) return;
-        
         let newData = JSON.parse(rawData);
         const key = `${curY}-${curM}`;
         let currentRows = voucherData[key].list[activeIdx].data;
-        
         newData.forEach(item => {
             let emptyIdx = currentRows.findIndex(r => !r.d && !r.a);
-            if (emptyIdx !== -1) {
-                currentRows[emptyIdx] = item;
-            } else {
+            if (emptyIdx !== -1) currentRows[emptyIdx] = item;
+            else {
                 const newVoucher = createRows();
                 newVoucher.name = `伝票 ${voucherData[key].list.length + 1}`;
                 newVoucher.data[0] = item;
@@ -228,18 +161,10 @@
                 currentRows = voucherData[key].list[voucherData[key].list.length - 1].data;
             }
         });
-
-        localStorage.removeItem('transferData'); 
-        save(); render();
-        alert(newData.length + "件のデータを反映しました。\n枠が足りない分は新しい伝票を自動作成しました。");
+        localStorage.removeItem('transferData'); save(); render();
     }
 
     function createRows() { return { name: "", data: Array(16).fill().map(() => ({ d: "", p: "", c: "", a: "" })) }; }
-
-    function normalizeText(str) {
-        if (!str) return "";
-        return str.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
-    }
 
     function formatSmartDate(val) {
         if (!val) return "";
@@ -252,58 +177,50 @@
         return val.replace(/-/g, '/');
     }
 
-    function handleContentConfirm(rIdx, val) {
-        updateCell(rIdx, 'c', val);
-        const norm = normalizeText(val);
-        if (fareMemory[norm]) {
-            updateCell(rIdx, 'a', fareMemory[norm]);
-            render();
-            setTimeout(() => {
-                const amountInputs = document.querySelectorAll('.amount-input-cell');
-                if(amountInputs[rIdx]) {
-                    amountInputs[rIdx].classList.add('auto-filled');
-                    setTimeout(() => amountInputs[rIdx].classList.remove('auto-filled'), 1000);
-                }
-            }, 50);
-        }
-    }
-
-    // ★★★ 金額入力時の保存ロジックを「区間記号がある時のみ」に限定 ★★★
-    function handleAmountConfirm(rIdx, val) {
-        const cleanVal = val.replace(/[^0-9]/g, '');
-        updateCell(rIdx, 'a', cleanVal);
-        const content = voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx].c;
+    async function sendToSpreadsheet() {
+        const gasUrl = "https://script.google.com/macros/s/AKfycbzKs4WOB9a83jN2rgXfzW-cna90YdFWI-7q_QDJv3qQ95hef0dHl7t6LG2QCu8NSK2G/exec";
         
-        if (!content || !cleanVal) return;
-
-        // 内容に区間を示す記号が含まれているかチェック
-        const isRoute = /[-ー－～~→]/.test(content);
-        
-        // 移動区間（記号あり）の場合のみ保存する
-        if (isRoute) {
-            const norm = normalizeText(content);
-            fareMemory[norm] = cleanVal; 
-            localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
-        }
-    }
-
-    async function execCopy(btn) {
-        const input = btn.previousElementSibling;
-        const text = input.value;
-        if (!text) return;
-        try {
-            await navigator.clipboard.writeText(text);
-            btn.innerText = "✅";
-            input.classList.add('copied-success');
-            setTimeout(() => { btn.innerText = "📋"; input.classList.remove('copied-success'); }, 800);
-        } catch (err) { console.error('Copy failed', err); }
-    }
-
-    function renameTab(idx) {
         const key = `${curY}-${curM}`;
-        const currentName = voucherData[key].list[idx].name || `伝票 ${idx + 1}`;
-        const newName = prompt("タブの名前を入力してください", currentName);
-        if (newName !== null) { voucherData[key].list[idx].name = newName; save(); render(); }
+        const data = voucherData[key];
+        
+        if (!globalName) { alert("お名前を入力してください。"); return; }
+        if (!confirm("全てのタブ（ページ）のデータを出納帳形式で一括送信しますか？")) return;
+
+        let allPayload = [];
+        data.list.forEach((voucher) => {
+            const validRows = voucher.data.filter(r => r.d || r.a);
+            if (validRows.length === 0) return;
+
+            validRows.forEach((r, index) => {
+                allPayload.push({
+                    userName: (index === 0) ? globalName : "", 
+                    creationDate: (index === 0) ? (data.date || "") : "", 
+                    tekiyo: `${r.d} ${r.p} ${r.c}`.trim(),
+                    income: "",
+                    amount: r.a
+                });
+            });
+        });
+
+        if (allPayload.length === 0) { alert("送信するデータがありません。"); return; }
+
+        try {
+            await fetch(gasUrl, {
+                method: "POST",
+                mode: 'no-cors',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ list: allPayload })
+            });
+
+            alert("全タブの送信が完了しました！\nスプレッドシートをご確認ください。");
+            
+            if (confirm("送信したデータを画面上から消去（リセット）して、新しい伝票を作成できる状態にしますか？")) {
+                localStorage.removeItem('voucherData');
+                location.reload(); 
+            }
+        } catch (err) {
+            alert("送信エラーが発生しました。");
+        }
     }
 
     function render() {
@@ -332,7 +249,7 @@
                 <td><div class="date-input-wrapper"><input type="text" class="date-input-cell" value="${r.d}" onchange="updateCell(${i},'d',formatSmartDate(this.value))" placeholder="MM/DD"><span style="cursor:pointer; font-size: 20px;" onclick="this.nextElementSibling.showPicker()">📅</span><input type="date" style="position:absolute;opacity:0;width:0;pointer-events:none;" onchange="updateCell(${i},'d',this.value.replace(/-/g,'/'))"></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.p}" onchange="updateCell(${i},'p',this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.c}" onchange="handleContentConfirm(${i},this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
-                <td><input type="text" class="amount-input-cell" value="${r.a}" onchange="handleAmountConfirm(${i},this.value)" onfocus="this.select()"></td>
+                <td><input type="text" id="amount-input-${i}" class="amount-input-cell" value="${r.a}" onchange="handleAmountConfirm(${i},this.value)" onfocus="this.select()"></td>
                 <td><button style="border:none;background:none;color:var(--main-pink);cursor:pointer;font-size:18px;" onclick="clearRow(${i})">🗑️</button></td>
             </tr>`;
         });
@@ -344,76 +261,63 @@
         voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx][field] = val;
         save(); if (field === 'd') render(); else { updateTotal(); preparePrint(); }
     }
-
     function save() { localStorage.setItem('voucherData', JSON.stringify(voucherData)); }
     function syncGlobalName(val) { globalName = val; localStorage.setItem('globalName', globalName); preparePrint(); }
     function syncGlobalDate(val) { const key = `${curY}-${curM}`; voucherData[key].date = formatSmartDate(val); save(); render(); }
     function syncGlobalOffice(val) { const key = `${curY}-${curM}`; voucherData[key].office = val; save(); preparePrint(); }
-
     function updateTotal() {
         const rows = voucherData[`${curY}-${curM}`].list[activeIdx].data;
         const total = rows.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
         document.getElementById('ui-total-display').innerText = total.toLocaleString();
     }
-
-    function exportData() {
-        const displayMonth = String(curM).padStart(2, '0');
-        const fileNameName = globalName || '未入力';
-        const data = { globalName: globalName, voucherData: voucherData, fareMemory: fareMemory };
-        const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${curY}年${displayMonth}月分_${fileNameName}_出金伝票.json`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 100);
+    async function execCopy(btn) {
+        const input = btn.previousElementSibling;
+        if (!input.value) return;
+        await navigator.clipboard.writeText(input.value);
+        btn.innerText = "✅";
+        setTimeout(() => { btn.innerText = "📋"; }, 800);
     }
-
-    function importData(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (data.globalName) { globalName = data.globalName; localStorage.setItem('globalName', globalName); }
-                if (data.voucherData) { 
-                    voucherData = data.voucherData; 
-                    Object.keys(voucherData).forEach(k => { voucherData[k].list = voucherData[k].list.map(v => v.data ? v : { name: "", data: v }); });
-                    localStorage.setItem('voucherData', JSON.stringify(voucherData)); 
+    function renameTab(idx) {
+        const key = `${curY}-${curM}`;
+        const newName = prompt("タブの名前", voucherData[key].list[idx].name || `伝票 ${idx + 1}`);
+        if (newName !== null) { voucherData[key].list[idx].name = newName; save(); render(); }
+    }
+    function handleContentConfirm(rIdx, val) {
+        updateCell(rIdx, 'c', val);
+        const norm = val.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
+        if (fareMemory[norm]) { 
+            updateCell(rIdx, 'a', fareMemory[norm]);
+            // ★ フラッシュエフェクト適用 ★
+            setTimeout(() => {
+                const el = document.getElementById(`amount-input-${rIdx}`);
+                if (el) {
+                    el.classList.remove('flash-active');
+                    void el.offsetWidth; // リフロー強制
+                    el.classList.add('flash-active');
                 }
-                if (data.fareMemory) { fareMemory = data.fareMemory; localStorage.setItem('fareMemory', JSON.stringify(fareMemory)); }
-                alert('データを読み込みました！'); activeIdx = 0; init();
-            } catch (err) { alert('ファイルの形式が正しくありません'); }
-        };
-        reader.readAsText(file);
+            }, 10);
+            render(); 
+        }
     }
-
-    function addNewVoucher() {
-        const key = `${curY}-${curM}`;
-        voucherData[key].list.push(createRows());
-        activeIdx = voucherData[key].list.length - 1;
-        save(); render();
+    function handleAmountConfirm(rIdx, val) {
+        const cleanVal = val.replace(/[^0-9]/g, '');
+        updateCell(rIdx, 'a', cleanVal);
+        const content = voucherData[`${curY}-${curM}`].list[activeIdx].data[rIdx].c;
+        if (content && cleanVal && /[-ー－～~→]/.test(content)) {
+            const norm = content.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
+            fareMemory[norm] = cleanVal; localStorage.setItem('fareMemory', JSON.stringify(fareMemory));
+        }
     }
-    function deleteCurrentVoucher() {
-        const key = `${curY}-${curM}`;
-        if (voucherData[key].list.length <= 1) return;
-        if (confirm("削除しますか？")) { voucherData[key].list.splice(activeIdx, 1); activeIdx = 0; save(); render(); }
-    }
-    function changeMonth(n) {
-        curM += n; if (curM > 12) { curM = 1; curY++; } else if (curM < 1) { curM = 12; curY--; }
-        activeIdx = 0; init();
-    }
-    function clearRow(i) {
-        if (confirm("クリアしますか？")) { voucherData[`${curY}-${curM}`].list[activeIdx].data[i] = { d: "", p: "", c: "", a: "" }; save(); render(); }
-    }
+    function addNewVoucher() { const key = `${curY}-${curM}`; voucherData[key].list.push(createRows()); activeIdx = voucherData[key].list.length - 1; save(); render(); }
+    function deleteCurrentVoucher() { const key = `${curY}-${curM}`; if (voucherData[key].list.length > 1 && confirm("削除しますか？")) { voucherData[key].list.splice(activeIdx, 1); activeIdx = 0; save(); render(); } }
+    function changeMonth(n) { curM += n; if (curM > 12) { curM = 1; curY++; } else if (curM < 1) { curM = 12; curY--; } activeIdx = 0; init(); }
+    function clearRow(i) { if (confirm("クリアしますか？")) { voucherData[`${curY}-${curM}`].list[activeIdx].data[i] = { d: "", p: "", c: "", a: "" }; save(); render(); } }
 
     function preparePrint() {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
         const pArea = document.getElementById('print-area');
-        if (!pArea) return;
-        pArea.innerHTML = '';
+        if (!pArea) return; pArea.innerHTML = '';
         data.list.forEach((v) => {
             let rowsPrint = v.data.filter(r => r.d || (r.a && parseInt(r.a) > 0));
             rowsPrint.sort((a, b) => { if (!a.d) return 1; if (!b.d) return -1; return new Date(a.d) - new Date(b.d); });
@@ -421,61 +325,25 @@
             const total = rowsPrint.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
             const page = document.createElement('div');
             page.className = 'voucher-page';
-            page.innerHTML = `
-                <div class="stamp-area">
-                    <div class="stamp-box" style="width:45mm;">
-                        <div class="stamp-label">承認印</div>
-                        <div style="display:flex;">
-                            <div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div>
-                            <div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div>
-                            <div style="width:15mm; height:12mm;"></div>
-                        </div>
-                    </div>
-                    <div class="stamp-box">
-                        <div class="stamp-label">係印</div>
-                        <div class="stamp-space"></div>
-                    </div>
-                </div>
-
-                <div class="print-header">
-                    <div class="print-title">出金伝票</div>
-                    <div class="print-info-row">
-                        <div style="font-size:11pt;">作成日: ${data.date || '　年　月　日'}</div>
-                        <div style="text-align:right;">
-                            <div style="font-size:10pt; margin-bottom:1mm;">${data.office}</div>
-                            <div style="border-bottom:1pt solid #000; width:60mm; font-size:12pt; padding-bottom:1mm;">氏名： ${globalName}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <table class="print-table">
-                    <thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead>
-                    <tbody>${rowsPrint.map(r => `<tr>
-                        <td>${r.d || ''}</td><td>${r.p || ''}</td><td>${r.c || ''}</td>
-                        <td style="text-align:right; padding-right:8px;">${r.a ? '¥ ' + parseInt(r.a).toLocaleString() : ''}</td>
-                    </tr>`).join('')}</tbody>
-                    <tr class="print-total-row"><td colspan="3" style="text-align:right; padding-right:15px;">合計</td><td style="text-align:right; padding-right:8px;">¥ ${total.toLocaleString()}</td></tr>
-                </table>`;
+            page.innerHTML = `<div class="stamp-area"><div class="stamp-box" style="width:45mm;"><div class="stamp-label">承認印</div><div style="display:flex;"><div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div><div style="width:15mm; height:12mm; border-right:0.5pt solid #000;"></div><div style="width:15mm; height:12mm;"></div></div></div><div class="stamp-box"><div class="stamp-label">係印</div><div class="stamp-space"></div></div></div><div class="print-header"><div class="print-title">出金伝票</div><div class="print-info-row"><div style="font-size:11pt;">作成日: ${data.date || '　年　月　日'}</div><div style="text-align:right;"><div style="font-size:10pt; margin-bottom:1mm;">${data.office}</div><div style="border-bottom:1pt solid #000; width:60mm; font-size:12pt; padding-bottom:1mm;">氏名： ${globalName}</div></div></div></div><table class="print-table"><thead><tr><th width="18%">日付</th><th width="24%">支払先</th><th width="38%">内容</th><th width="20%">金額</th></tr></thead><tbody>${rowsPrint.map(r => `<tr><td>${r.d || ''}</td><td>${r.p || ''}</td><td>${r.c || ''}</td><td style="text-align:right; padding-right:8px;">${r.a ? '¥ ' + parseInt(r.a).toLocaleString() : ''}</td></tr>`).join('')}</tbody><tr class="print-total-row"><td colspan="3" style="text-align:right; padding-right:15px;">合計</td><td style="text-align:right; padding-right:8px;">¥ ${total.toLocaleString()}</td></tr></table>`;
             pArea.appendChild(page);
         });
     }
 
-    async function copyCurrentTabForExcel(btn) {
-        const key = `${curY}-${curM}`;
-        const data = voucherData[key];
-        const currentRows = data.list[activeIdx].data;
-        let tsv = "";
-        let validRows = currentRows.filter(r => r.d || (r.a && parseInt(r.a) > 0));
-        validRows.sort((a, b) => new Date(a.d) - new Date(b.d));
-        validRows.forEach((r, index) => {
-            const rowDate = (index === 0) ? (data.date || "") : "";
-            const rowSummary = `${r.d} ${r.p} ${r.c}`.trim();
-            tsv += `${rowDate}\t${rowSummary}\t\t${r.a}\t\n`;
-        });
-        if (!tsv) { alert("コピーするデータがありません"); return; }
-        await navigator.clipboard.writeText(tsv);
-        btn.innerText = "✅ コピー済";
-        setTimeout(() => { btn.innerText = "📊 表示中の伝票をコピー"; }, 2000);
+    function exportData() {
+        const data = { globalName: globalName, voucherData: voucherData, fareMemory: fareMemory };
+        const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${curY}年${curM}月_${globalName || '未入力'}_出金伝票.json`; a.click();
+    }
+    function importData(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = JSON.parse(e.target.result);
+            globalName = data.globalName || ""; voucherData = data.voucherData || {}; fareMemory = data.fareMemory || {};
+            localStorage.setItem('globalName', globalName); localStorage.setItem('voucherData', JSON.stringify(voucherData));
+            alert('読込完了'); init();
+        };
+        reader.readAsText(input.files[0]);
     }
 </script>
 </body>
