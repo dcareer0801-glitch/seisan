@@ -23,11 +23,13 @@
         .ui-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid var(--bg-color); padding-bottom: 15px; }
         h1 { font-size: 1.4rem; margin: 0; color: var(--main-blue); }
         
-        .data-io-btns { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 1050px; }
+        .data-io-btns { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 1050px; flex-wrap: wrap; }
         .btn-export { background: #576574; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
         .btn-import { background: #8395a7; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; }
         .btn-send { background: var(--main-blue); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .btn-send:hover { opacity: 0.8; }
+        .btn-all-copy { background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-all-copy:hover { opacity: 0.8; }
 
         .top-inputs { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         input[type="text"], select { padding: 12px; border: 2px solid #e1e8ef; border-radius: 15px; outline: none; font-size: 14px; background: var(--input-bg); transition: 0.3s; width: 100%; box-sizing: border-box; }
@@ -90,6 +92,7 @@
     <button class="btn-export" onclick="exportData()">💾 データを保存（配布用）</button>
     <button class="btn-send" onclick="sendToSpreadsheet()">☁️ データ送信</button>
     <button class="btn-import" onclick="document.getElementById('import-file').click()">📂 データを読み込む</button>
+    <button class="btn-all-copy" onclick="copyCurrentVoucherToExcel()">📊 表示中の伝票をコピー</button>
     <input type="file" id="import-file" style="display:none" onchange="importData(this)">
 </div>
 
@@ -177,6 +180,42 @@
         return val.replace(/-/g, '/');
     }
 
+    // ★修正：出納帳フォーマットに合わせてコピーする関数
+    async function copyCurrentVoucherToExcel() {
+        const key = `${curY}-${curM}`;
+        const data = voucherData[key];
+        const currentRows = data.list[activeIdx].data;
+        
+        // 有効な行（日付、または金額が入力されている行）のみを抽出
+        const validRows = currentRows.filter(r => r.d || r.a);
+        
+        if (validRows.length === 0) {
+            alert("コピーするデータがありません。");
+            return;
+        }
+
+        let tsvText = "";
+        validRows.forEach((r, index) => {
+            // A列: 1行目のみ作成日、以降は空白
+            const colA = (index === 0) ? (data.date || "") : "";
+            // B列: 日付、支払先、内容を半角スペースで結合
+            const colB = `${r.d} ${r.p} ${r.c}`.trim();
+            // C列: 収入金額（空白）
+            const colC = "";
+            // D列: 支出金額
+            const colD = r.a;
+
+            tsvText += `${colA}\t${colB}\t${colC}\t${colD}\n`;
+        });
+
+        try {
+            await navigator.clipboard.writeText(tsvText);
+            alert("出納帳フォーマットでコピーしました！\nExcelの日付（A列）のセルを選択して貼り付け（Ctrl + V）してください。");
+        } catch (err) {
+            alert("コピーに失敗しました。ブラウザの権限を確認してください。");
+        }
+    }
+
     async function sendToSpreadsheet() {
         const gasUrl = "https://script.google.com/macros/s/AKfycbzKs4WOB9a83jN2rgXfzW-cna90YdFWI-7q_QDJv3qQ95hef0dHl7t6LG2QCu8NSK2G/exec";
         
@@ -193,8 +232,8 @@
 
             validRows.forEach((r, index) => {
                 allPayload.push({
-                    userName: (index === 0) ? globalName : "", 
-                    creationDate: (index === 0) ? (data.date || "") : "", 
+                    userName: globalName,
+                    creationDate: (index === 0) ? (data.date || "") : "",
                     tekiyo: `${r.d} ${r.p} ${r.c}`.trim(),
                     income: "",
                     amount: r.a
@@ -214,10 +253,6 @@
 
             alert("全タブの送信が完了しました！\nスプレッドシートをご確認ください。");
             
-            if (confirm("送信したデータを画面上から消去（リセット）して、新しい伝票を作成できる状態にしますか？")) {
-                localStorage.removeItem('voucherData');
-                location.reload(); 
-            }
         } catch (err) {
             alert("送信エラーが発生しました。");
         }
@@ -287,7 +322,6 @@
         const norm = val.replace(/[駅市\s\t\(\)（）]/g, '').replace(/[－ｰ—―─━ー~～-]/g, 'ー').split('').sort().join('');
         if (fareMemory[norm]) { 
             updateCell(rIdx, 'a', fareMemory[norm]);
-            // ★ フラッシュエフェクト適用 ★
             setTimeout(() => {
                 const el = document.getElementById(`amount-input-${rIdx}`);
                 if (el) {
