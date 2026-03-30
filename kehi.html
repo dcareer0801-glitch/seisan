@@ -214,10 +214,6 @@
 
             alert("全タブの送信が完了しました！\nスプレッドシートをご確認ください。");
             
-            if (confirm("送信したデータを画面上から消去（リセット）して、新しい伝票を作成できる状態にしますか？")) {
-                localStorage.removeItem('voucherData');
-                location.reload(); 
-            }
         } catch (err) {
             alert("送信エラーが発生しました。");
         }
