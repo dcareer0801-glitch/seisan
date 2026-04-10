@@ -36,6 +36,12 @@
         table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
         th { padding: 5px 10px; font-size: 13px; color: #a4b0be; text-align: center; }
         td { background: #fff; border: 2px solid #f1f2f6; height: 60px; vertical-align: middle; padding: 0 8px; transition: 0.3s; }
+        
+        /* ドラッグ関連のスタイル */
+        .drag-handle { cursor: grab; color: #ced6e0; font-size: 20px; text-align: center; width: 40px; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+        .dragging { opacity: 0.5; background: #f1f2f6 !important; }
+
         td:first-child { border-radius: 15px 0 0 15px; }
         td:last-child { border-radius: 0 15px 15px 0; width: 60px; text-align: center; }
         
@@ -46,7 +52,6 @@
         .date-input-cell { width: 120px; border: none !important; background: #ebf2ff !important; border-radius: 10px; padding: 10px 4px; text-align: center; font-weight: bold; color: var(--main-blue); font-size: 14px; outline: none; }
         .amount-input-cell { width: 90%; border: none; background: #f3ebff; border-radius: 12px; padding: 10px; text-align: center; font-weight: bold; color: var(--main-purple); font-size: 16px; outline: none; }
         
-        /* フラッシュエフェクト用アニメーション */
         @keyframes flash-purple {
             0% { background-color: var(--main-purple); color: white; }
             100% { background-color: #f3ebff; color: var(--main-purple); }
@@ -180,56 +185,36 @@
         return val.replace(/-/g, '/');
     }
 
-    // ★修正：出納帳フォーマットに合わせてコピーする関数
     async function copyCurrentVoucherToExcel() {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
         const currentRows = data.list[activeIdx].data;
-        
-        // 有効な行（日付、または金額が入力されている行）のみを抽出
         const validRows = currentRows.filter(r => r.d || r.a);
-        
-        if (validRows.length === 0) {
-            alert("コピーするデータがありません。");
-            return;
-        }
-
+        if (validRows.length === 0) { alert("コピーするデータがありません。"); return; }
         let tsvText = "";
         validRows.forEach((r, index) => {
-            // A列: 1行目のみ作成日、以降は空白
             const colA = (index === 0) ? (data.date || "") : "";
-            // B列: 日付、支払先、内容を半角スペースで結合
             const colB = `${r.d} ${r.p} ${r.c}`.trim();
-            // C列: 収入金額（空白）
             const colC = "";
-            // D列: 支出金額
             const colD = r.a;
-
             tsvText += `${colA}\t${colB}\t${colC}\t${colD}\n`;
         });
-
         try {
             await navigator.clipboard.writeText(tsvText);
             alert("出納帳フォーマットでコピーしました！\nExcelの日付（A列）のセルを選択して貼り付け（Ctrl + V）してください。");
-        } catch (err) {
-            alert("コピーに失敗しました。ブラウザの権限を確認してください。");
-        }
+        } catch (err) { alert("コピーに失敗しました。"); }
     }
 
     async function sendToSpreadsheet() {
         const gasUrl = "https://script.google.com/macros/s/AKfycbzKs4WOB9a83jN2rgXfzW-cna90YdFWI-7q_QDJv3qQ95hef0dHl7t6LG2QCu8NSK2G/exec";
-        
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
-        
         if (!globalName) { alert("お名前を入力してください。"); return; }
         if (!confirm("全てのタブ（ページ）のデータを出納帳形式で一括送信しますか？")) return;
-
         let allPayload = [];
         data.list.forEach((voucher) => {
             const validRows = voucher.data.filter(r => r.d || r.a);
             if (validRows.length === 0) return;
-
             validRows.forEach((r, index) => {
                 allPayload.push({
                     userName: globalName,
@@ -240,24 +225,14 @@
                 });
             });
         });
-
         if (allPayload.length === 0) { alert("送信するデータがありません。"); return; }
-
         try {
-            await fetch(gasUrl, {
-                method: "POST",
-                mode: 'no-cors',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ list: allPayload })
-            });
-
-            alert("全タブの送信が完了しました！\nスプレッドシートをご確認ください。");
-            
-        } catch (err) {
-            alert("送信エラーが発生しました。");
-        }
+            await fetch(gasUrl, { method: "POST", mode: 'no-cors', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ list: allPayload }) });
+            alert("全タブの送信が完了しました！");
+        } catch (err) { alert("送信エラーが発生しました。"); }
     }
 
+    // ★修正：ドラッグハンドル（⠿）を追加し、draggable属性を付与
     function render() {
         const key = `${curY}-${curM}`;
         const data = voucherData[key];
@@ -278,9 +253,11 @@
 
         const area = document.getElementById('editor-area');
         const rows = data.list[activeIdx].data;
-        let html = `<table><tr><th width="180px">日付</th><th width="25%">支払先</th><th width="32%">内容</th><th width="15%">金額</th><th width="60px"></th></tr>`;
+        let html = `<table id="drag-table"><thead><tr><th width="40px"></th><th width="180px">日付</th><th width="25%">支払先</th><th width="32%">内容</th><th width="15%">金額</th><th width="60px"></th></tr></thead><tbody id="sortable-body">`;
+        
         rows.forEach((r, i) => {
-            html += `<tr>
+            html += `<tr draggable="true" data-index="${i}" ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragend="handleDragEnd(event)">
+                <td class="drag-handle">⠿</td>
                 <td><div class="date-input-wrapper"><input type="text" class="date-input-cell" value="${r.d}" onchange="updateCell(${i},'d',formatSmartDate(this.value))" placeholder="MM/DD"><span style="cursor:pointer; font-size: 20px;" onclick="this.nextElementSibling.showPicker()">📅</span><input type="date" style="position:absolute;opacity:0;width:0;pointer-events:none;" onchange="updateCell(${i},'d',this.value.replace(/-/g,'/'))"></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.p}" onchange="updateCell(${i},'p',this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
                 <td><div class="copy-input-group"><input type="text" value="${r.c}" onchange="handleContentConfirm(${i},this.value)"><button class="btn-copy-mini" onclick="execCopy(this)">📋</button></div></td>
@@ -288,8 +265,42 @@
                 <td><button style="border:none;background:none;color:var(--main-pink);cursor:pointer;font-size:18px;" onclick="clearRow(${i})">🗑️</button></td>
             </tr>`;
         });
-        area.innerHTML = html + `</table>`;
+        area.innerHTML = html + `</tbody></table>`;
         updateTotal(); preparePrint();
+    }
+
+    // ★追加：ドラッグ＆ドロップ用ロジック
+    let dragSrcIndex = null;
+
+    function handleDragStart(e) {
+        dragSrcIndex = e.currentTarget.getAttribute('data-index');
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const targetIndex = e.currentTarget.getAttribute('data-index');
+        if (dragSrcIndex === targetIndex) return;
+
+        const key = `${curY}-${curM}`;
+        const list = voucherData[key].list[activeIdx].data;
+        
+        // データの入れ替え
+        const [movedItem] = list.splice(dragSrcIndex, 1);
+        list.splice(targetIndex, 0, movedItem);
+
+        save();
+        render(); // 再描画してインデックスを更新
+    }
+
+    function handleDragEnd(e) {
+        e.currentTarget.classList.remove('dragging');
     }
 
     function updateCell(rIdx, field, val) {
@@ -326,7 +337,7 @@
                 const el = document.getElementById(`amount-input-${rIdx}`);
                 if (el) {
                     el.classList.remove('flash-active');
-                    void el.offsetWidth; // リフロー強制
+                    void el.offsetWidth;
                     el.classList.add('flash-active');
                 }
             }, 10);
@@ -354,7 +365,7 @@
         if (!pArea) return; pArea.innerHTML = '';
         data.list.forEach((v) => {
             let rowsPrint = v.data.filter(r => r.d || (r.a && parseInt(r.a) > 0));
-            rowsPrint.sort((a, b) => { if (!a.d) return 1; if (!b.d) return -1; return new Date(a.d) - new Date(b.d); });
+            // 印刷時は自動ソートせず、エディタ上の並び順を維持するよう修正
             while(rowsPrint.length < 16) rowsPrint.push({d:"",p:"",c:"",a:""});
             const total = rowsPrint.reduce((s, r) => s + (parseInt(r.a) || 0), 0);
             const page = document.createElement('div');
